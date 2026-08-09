@@ -1,0 +1,639 @@
+import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { solveDoubt } from "./service/gemini";
+import "./App.css";
+
+function App() {
+  const [question, setQuestion] = useState("");
+  const [subject, setSubject] = useState("General");
+  const [answer, setAnswer] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  const [history, setHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem("doubtHistory");
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error("History load error:", error);
+      return [];
+    }
+  });
+
+  const handleSolve = async () => {
+    if (!question.trim()) return;
+
+    setLoading(true);
+    setAnswer("");
+
+    try {
+      const result = await solveDoubt(question, subject);
+
+      setAnswer(result);
+
+      const newItem = {
+        question: question.trim(),
+        subject,
+        answer: result,
+        date: new Date().toLocaleString(),
+      };
+
+      setHistory((prev) => {
+        const newHistory = [newItem, ...prev].slice(0, 20);
+
+        localStorage.setItem(
+          "doubtHistory",
+          JSON.stringify(newHistory)
+        );
+
+        return newHistory;
+      });
+    } catch (error) {
+      console.error("AI Error:", error);
+
+      setAnswer(
+        "Sorry, something went wrong. Please try again after some time."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClear = () => {
+    setQuestion("");
+    setAnswer("");
+  };
+
+  const handleCopy = async () => {
+    if (!answer) return;
+
+    try {
+      await navigator.clipboard.writeText(answer);
+      alert("Answer copied!");
+    } catch (error) {
+      console.error("Copy error:", error);
+      alert("Unable to copy answer.");
+    }
+  };
+
+  const handleClearHistory = () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to clear all doubt history?"
+    );
+
+    if (!confirmDelete) return;
+
+    localStorage.removeItem("doubtHistory");
+    setHistory([]);
+  };
+
+  const toggleDarkMode = () => {
+    const newMode = !darkMode;
+
+    setDarkMode(newMode);
+    localStorage.setItem("darkMode", newMode);
+  };
+
+  const scrollToSolver = () => {
+    document
+      .getElementById("solver")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleFeatureKeyDown = (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      scrollToSolver();
+    }
+  };
+
+  return (
+    <div className={`app ${darkMode ? "dark-mode" : ""}`}>
+
+      {/* NAVBAR */}
+      <nav className="navbar">
+
+        <div className="logo">
+          <span className="logo-icon">🎓</span>
+          <span>Smart Doubt Solver</span>
+        </div>
+
+        <div className="nav-links">
+          <a href="#home">Home</a>
+          <a href="#features">Features</a>
+          <a href="#history">History</a>
+          <a href="#about">About</a>
+        </div>
+
+        <div className="nav-actions">
+
+          <button
+            className="theme-button"
+            onClick={toggleDarkMode}
+            type="button"
+            title={darkMode ? "Light Mode" : "Dark Mode"}
+          >
+            {darkMode ? "☀️" : "🌙"}
+          </button>
+
+          <button
+            className="nav-button"
+            onClick={scrollToSolver}
+            type="button"
+          >
+            Get Started
+          </button>
+
+        </div>
+
+      </nav>
+
+
+      {/* HERO */}
+      <main id="home">
+
+        <section className="hero-section">
+
+          <div className="hero-badge">
+            ✨ AI-Powered Learning Assistant
+          </div>
+
+          <h1>
+            Learn Smarter.
+            <br />
+            <span>Solve Doubts Faster.</span>
+          </h1>
+
+          <p>
+            Your personal AI study assistant that helps you understand
+            difficult concepts, solve questions and learn with confidence.
+          </p>
+
+          <button
+            className="hero-button"
+            onClick={scrollToSolver}
+            type="button"
+          >
+            Start Solving Doubts ✨
+          </button>
+
+          <div className="trust-text">
+            🤖 Powered by Gemini AI &nbsp; • &nbsp; 📚 Built for Students
+          </div>
+
+        </section>
+
+
+        {/* SOLVER */}
+        <section
+          className="solver-section"
+          id="solver"
+        >
+
+          <div className="section-heading">
+
+            <span>AI DOUBT SOLVER</span>
+
+            <h2>
+              What do you want to learn today?
+            </h2>
+
+            <p>
+              Ask your question and let AI explain it in a simple way.
+            </p>
+
+          </div>
+
+
+          <div className="solver-card">
+
+            <div className="solver-top">
+
+              <div>
+
+                <h3>
+                  💡 Ask Your Doubt
+                </h3>
+
+                <p>
+                  Choose a subject and enter your question below.
+                </p>
+
+              </div>
+
+              <span className="ai-status">
+                ● AI Online
+              </span>
+
+            </div>
+
+
+            <label>
+              Subject
+            </label>
+
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            >
+              <option>General</option>
+              <option>Artificial Intelligence</option>
+              <option>Machine Learning</option>
+              <option>Computer Science</option>
+              <option>Programming</option>
+              <option>Data Structures</option>
+              <option>Database</option>
+              <option>Mathematics</option>
+              <option>Physics</option>
+            </select>
+
+
+            <label>
+              Your Question
+            </label>
+
+            <textarea
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Example: Explain Artificial Intelligence in simple words..."
+            />
+
+
+            <div className="input-bottom">
+
+              <span>
+                💬 Ask anything related to your studies
+              </span>
+
+              <span>
+                {question.length} characters
+              </span>
+
+            </div>
+
+
+            <div className="solver-actions">
+
+              <button
+                className="clear-button"
+                onClick={handleClear}
+                type="button"
+              >
+                Clear
+              </button>
+
+
+              <button
+                className="solve-button"
+                onClick={handleSolve}
+                disabled={loading || !question.trim()}
+                type="button"
+              >
+                {loading
+                  ? "🤔 Thinking..."
+                  : "✨ Solve My Doubt"}
+              </button>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* ANSWER */}
+        {answer && (
+
+          <section className="answer-section">
+
+            <div className="answer-card">
+
+              <div className="answer-top">
+
+                <div>
+
+                  <span className="answer-label">
+                    🤖 AI GENERATED ANSWER
+                  </span>
+
+                  <h2>
+                    Here's your explanation
+                  </h2>
+
+                </div>
+
+
+                <button
+                  className="copy-button"
+                  onClick={handleCopy}
+                  type="button"
+                >
+                  📋 Copy Answer
+                </button>
+
+              </div>
+
+
+              <div className="answer-content">
+
+                <ReactMarkdown>
+                  {answer}
+                </ReactMarkdown>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* FEATURES */}
+        <section
+          className="features-section"
+          id="features"
+        >
+
+          <div className="section-heading">
+
+            <span>
+              WHY SMART DOUBT SOLVER?
+            </span>
+
+            <h2>
+              Everything you need to learn better
+            </h2>
+
+            <p>
+              Designed to make studying easier, faster and more interactive.
+            </p>
+
+          </div>
+
+
+          <div className="features-grid">
+
+
+            {/* AI TUTOR */}
+            <div
+              className="feature-card clickable-card"
+              onClick={scrollToSolver}
+              onKeyDown={handleFeatureKeyDown}
+              role="button"
+              tabIndex={0}
+            >
+
+              <div className="feature-icon">
+                🤖
+              </div>
+
+              <h3>
+                AI Tutor
+              </h3>
+
+              <p>
+                Get intelligent explanations for your academic doubts
+                using AI.
+              </p>
+
+              <span className="card-action">
+                Ask AI →
+              </span>
+
+            </div>
+
+
+            {/* INSTANT ANSWERS */}
+            <div
+              className="feature-card clickable-card"
+              onClick={scrollToSolver}
+              onKeyDown={handleFeatureKeyDown}
+              role="button"
+              tabIndex={0}
+            >
+
+              <div className="feature-icon">
+                ⚡
+              </div>
+
+              <h3>
+                Instant Answers
+              </h3>
+
+              <p>
+                Get quick responses so you can spend more time learning
+                and less time searching.
+              </p>
+
+              <span className="card-action">
+                Ask Now →
+              </span>
+
+            </div>
+
+
+            {/* MULTIPLE SUBJECTS */}
+            <div
+              className="feature-card clickable-card"
+              onClick={scrollToSolver}
+              onKeyDown={handleFeatureKeyDown}
+              role="button"
+              tabIndex={0}
+            >
+
+              <div className="feature-icon">
+                📚
+              </div>
+
+              <h3>
+                Multiple Subjects
+              </h3>
+
+              <p>
+                Ask questions from programming, AI, mathematics,
+                physics and more.
+              </p>
+
+              <span className="card-action">
+                Choose Subject →
+              </span>
+
+            </div>
+
+
+            {/* SIMPLE EXPLANATIONS */}
+            <div
+              className="feature-card clickable-card"
+              onClick={scrollToSolver}
+              onKeyDown={handleFeatureKeyDown}
+              role="button"
+              tabIndex={0}
+            >
+
+              <div className="feature-icon">
+                🧠
+              </div>
+
+              <h3>
+                Simple Explanations
+              </h3>
+
+              <p>
+                Understand difficult topics through easy,
+                student-friendly explanations.
+              </p>
+
+              <span className="card-action">
+                Learn Easily →
+              </span>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        {/* HISTORY */}
+        {history.length > 0 && (
+
+          <section
+            className="history-section"
+            id="history"
+          >
+
+            <div className="section-heading">
+
+              <span>
+                YOUR LEARNING
+              </span>
+
+              <h2>
+                Recent Doubts
+              </h2>
+
+              <p>
+                Your previous questions are saved on this device.
+              </p>
+
+            </div>
+
+
+            <div className="history-actions">
+
+              <button
+                className="clear-history-button"
+                onClick={handleClearHistory}
+                type="button"
+              >
+                🗑️ Clear History
+              </button>
+
+            </div>
+
+
+            <div className="history-list">
+
+              {history.slice(0, 5).map((item, index) => (
+
+                <div
+                  className="history-item"
+                  key={`${item.date}-${index}`}
+                >
+
+                  <div className="history-icon">
+                    📖
+                  </div>
+
+                  <div>
+
+                    <span>
+                      {item.subject}
+                    </span>
+
+                    <p>
+                      {item.question}
+                    </p>
+
+                    {item.date && (
+                      <small>
+                        {item.date}
+                      </small>
+                    )}
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          </section>
+
+        )}
+
+
+        {/* ABOUT */}
+        <section
+          className="about-section"
+          id="about"
+        >
+
+          <div className="about-content">
+
+            <div className="about-icon">
+              🎓
+            </div>
+
+            <div>
+
+              <span>
+                ABOUT THE PROJECT
+              </span>
+
+              <h2>
+                Making education smarter with AI.
+              </h2>
+
+              <p>
+                Smart Doubt Solver is an AI-powered student learning
+                platform designed to help students understand concepts,
+                solve doubts and learn more effectively.
+              </p>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
+
+      {/* FOOTER */}
+      <footer>
+
+        <div className="footer-logo">
+          🎓 Smart Doubt Solver
+        </div>
+
+        <p>
+          AI Powered Student Doubt Solving Platform
+        </p>
+
+        <small>
+          Built with React + Gemini AI
+        </small>
+
+      </footer>
+
+    </div>
+  );
+}
+
+export default App;
