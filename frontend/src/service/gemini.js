@@ -1,6 +1,9 @@
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+
 export async function solveDoubt(question, subject = "General") {
   try {
-    const response = await fetch("https://smart-doubt-solver-backend.vercel.app/api/solve", {
+    const response = await fetch(`${BACKEND_URL}/api/solve`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

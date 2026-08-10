@@ -6,9 +6,13 @@ import { GoogleGenAI } from "@google/genai";
 dotenv.config();
 
 const app = express();
-const PORT = 5000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+
 app.use(express.json());
 
 const ai = new GoogleGenAI({
@@ -23,43 +27,39 @@ app.get("/", (req, res) => {
 
 app.post("/api/solve", async (req, res) => {
   try {
-    const { question, subject } = req.body;
+    const { question, subject = "General" } = req.body;
 
-    if (!question || !question.trim()) {
+    if (!question) {
       return res.status(400).json({
         error: "Question is required",
       });
     }
 
     const prompt = `
-You are an AI tutor for students.
+You are Smart Doubt Solver, an AI tutor for students.
 
-Subject: ${subject || "General"}
+Subject: ${subject}
 
 Student Question:
 ${question}
 
-Explain the answer clearly using simple student-friendly language.
+Give a clear, accurate and easy-to-understand answer.
 
-Use:
-- Clear headings
-- Bullet points where useful
-- Examples where useful
-- Simple explanations
-
-Do not use unnecessary complicated language.
+Rules:
+- Explain step by step.
+- Use simple language.
+- Give examples when useful.
+- For mathematics, show calculations clearly.
+- For programming questions, provide correct code when needed.
+- Do not unnecessarily make the answer complicated.
 `;
 
-    console.log("Generating answer for:", question);
-
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
 
     const answer = response.text;
-
-    console.log("Answer generated successfully.");
 
     res.json({
       answer,
@@ -74,6 +74,13 @@ Do not use unnecessary complicated language.
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-});
+// Local development
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+
+  app.listen(PORT, () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
