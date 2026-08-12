@@ -731,7 +731,7 @@ function App() {
         </p>
 
         <small>
-          Built with React + Gemini AI
+          Designed and developed by Arun Kumar © 2026
         </small>
 
       </footer>
